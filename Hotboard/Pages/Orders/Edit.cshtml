@@ -1,0 +1,90 @@
+@page
+@model Hotboard.Pages.Orders.EditModel
+@{
+    ViewData["Title"] = "Order";
+}
+
+<form method="post">
+    <input type="hidden" asp-for="Order.Id" />
+    <div class="mb-3">
+        <label asp-for="Order.SO" class="form-label"></label>
+        <input asp-for="Order.SO" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label asp-for="Order.LinkForOrder" class="form-label">Link for Order</label>
+        <input asp-for="Order.LinkForOrder" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label asp-for="Order.Del" class="form-label"></label>
+        <input asp-for="Order.Del" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label asp-for="Order.PO" class="form-label"></label>
+        <input asp-for="Order.PO" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label asp-for="Order.Rec" class="form-label">Rec#</label>
+        <input asp-for="Order.Rec" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label asp-for="Order.LinkForIncomingPO" class="form-label">Link for Incoming PO</label>
+        <input asp-for="Order.LinkForIncomingPO" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label asp-for="Order.MO" class="form-label">MO#</label>
+        <input asp-for="Order.MO" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label asp-for="Order.LinkForMO" class="form-label">Link for MO</label>
+        <input asp-for="Order.LinkForMO" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label asp-for="Order.RO" class="form-label">RO#</label>
+        <input asp-for="Order.RO" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label asp-for="Order.LinkForRO" class="form-label">Link for RO</label>
+        <input asp-for="Order.LinkForRO" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label asp-for="Order.Customer" class="form-label">Customer</label>
+        <input asp-for="Order.Customer" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label asp-for="Order.Worker" class="form-label">Worker</label>
+        <input asp-for="Order.Worker" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <!-- CSR is set automatically to the creating user's name; field removed from UI -->
+    </div>
+    <div class="mb-3">
+        <label asp-for="Order.Courier" class="form-label">Courier</label>
+        <input asp-for="Order.Courier" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label asp-for="Order.Comment" class="form-label">Comment</label>
+        <input asp-for="Order.Comment" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label asp-for="Order.Status" class="form-label">Status</label>
+        <select asp-for="Order.Status" class="form-select" asp-items="Html.GetEnumSelectList<Hotboard.Models.OrderStatus>()"></select>
+    </div>
+
+    <div class="mb-3">
+        @if (Model.Order?.Id == 0)
+        {
+            <button type="submit" formaction="?handler=SetStatus&status=Waiting" class="btn btn-warning">Waiting</button>
+            <button type="submit" formaction="?handler=SetStatus&status=Ready" class="btn btn-danger">Ready</button>
+        }
+        else
+        {
+            <button type="submit" formaction="?handler=NextStep" class="btn btn-secondary">Next step</button>
+        }
+    </div>
+
+    <div class="mb-3 d-flex gap-2">
+        <button type="submit" formaction="?handler=Save" class="btn btn-primary">Save</button>
+        <button type="submit" formaction="?handler=Delete" class="btn btn-danger" onclick="return confirm('Delete this order?');">Delete</button>
+        <a asp-page="Index" class="btn btn-link">Back</a>
+    </div>
+</form>

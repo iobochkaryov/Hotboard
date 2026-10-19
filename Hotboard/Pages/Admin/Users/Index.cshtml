@@ -1,0 +1,48 @@
+@page
+@model Hotboard.Pages.Admin.Users.IndexModel
+@{
+    ViewData["Title"] = "User List";
+}
+
+<h1>User List</h1>
+
+<div class="d-flex gap-2 mb-3">
+    <a class="btn btn-primary" asp-page="./Edit">Add</a>
+    <input id="userSearch" class="form-control" placeholder="Search users..." style="width:300px;" oninput="onUserSearch();" />
+    <a class="btn btn-link ms-auto" asp-page="/Orders/Index">Back</a>
+</div>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Created by</th>
+            <th>Date</th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var u in Model.Users)
+    {
+        <tr class="user-row" data-name="@u.UserName?.ToLower()" onclick="location.href='@Url.Page("./Edit", new { id = u.Id })'" style="cursor:pointer;">
+            <td>@u.UserName</td>
+            <td>@u.CreatedBy</td>
+            <td>@(u.CreatedAt?.ToString("yyyy-MM-dd HH:mm") ?? "-")</td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+<script>
+    let utimer = null;
+    function onUserSearch() {
+        clearTimeout(utimer);
+        utimer = setTimeout(filterUsers, 200);
+    }
+    function filterUsers() {
+        const q = document.getElementById('userSearch').value.trim().toLowerCase();
+        document.querySelectorAll('.user-row').forEach(r => {
+            const name = r.dataset.name || '';
+            r.style.display = name.indexOf(q) !== -1 ? '' : 'none';
+        });
+    }
+</script>

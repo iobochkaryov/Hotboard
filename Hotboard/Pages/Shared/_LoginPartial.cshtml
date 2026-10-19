@@ -1,0 +1,34 @@
+﻿@using Microsoft.AspNetCore.Identity
+@inject SignInManager<IdentityUser> SignInManager
+@inject UserManager<IdentityUser> UserManager
+
+<ul class="navbar-nav">
+@if (SignInManager.IsSignedIn(User))
+{
+    <li class="nav-item">
+        @{
+            var currentUser = await UserManager.GetUserAsync(User);
+            var roles = currentUser is not null ? await UserManager.GetRolesAsync(currentUser) : new List<string>();
+            var role = roles.FirstOrDefault() ?? string.Empty;
+        }
+        <span class="nav-link text-dark">Hello @User.Identity?.Name! (@role)</span>
+    </li>
+    @if (role == "admin")
+    {
+        <li class="nav-item">
+            <a class="nav-link text-dark" asp-page="/Admin/Users/Index">User List</a>
+        </li>
+    }
+    <li class="nav-item">
+        <form class="form-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Page("/Index", new { area = "" })">
+            <button  type="submit" class="nav-link btn btn-link text-dark">Logout</button>
+        </form>
+    </li>
+}
+else
+{
+    <li class="nav-item">
+        <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Login">Login</a>
+    </li>
+}
+</ul>

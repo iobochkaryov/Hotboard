@@ -1,0 +1,211 @@
+@page
+@model Hotboard.Pages.Orders.IndexModel
+@{
+    ViewData["Title"] = "Hotboard - Orders";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex gap-2">
+        @if (User.IsInRole("admin") || User.IsInRole("CSR"))
+        {
+            <a class="btn btn-primary" asp-page="./Edit">Add</a>
+        }
+
+        <form class="d-flex gap-2" onsubmit="return false;">
+            <select id="filterSelect" class="form-select" style="width:200px;" name="Filter">
+                <option value="">All</option>
+                <option value="My Orders">My Orders</option>
+                <option value="Shipping">Shipping</option>
+                <option value="Receiving">Receiving</option>
+                <option value="Manufacturing">Manufacturing</option>
+                <option value="Sealshop">Sealshop</option>
+                <option value="Traffic">Traffic</option>
+            </select>
+
+            <input id="searchBox" name="Search" value="@Model.Search" class="form-control" placeholder="Search..." oninput="onSearchInput();" />
+        </form>
+    </div>
+
+    <!-- header partial removed to avoid duplicate login area (login partial is in layout) -->
+</div>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>SO#</th>
+            <th>Del#</th>
+            <th id="colThirdHeader">PO#</th>
+            <th>Customer</th>
+            <th>Worker</th>
+            <th>CSR</th>
+            <th>Courier</th>
+            <th>Comment</th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach(var o in Model.Orders)
+    {
+        var bg = GetStatusColor(o.Status);
+        var fg = o.Status==Hotboard.Models.OrderStatus.Complete?"black":"white";
+        // data attributes: status, rec, mo, ro for client-side filter logic
+        <tr id="order-@o.Id" data-edit-url="@Url.Page("./Edit", new { id = o.Id })" data-status="@o.Status" data-rec="@(o.Rec ?? "")" data-mo="@(o.MO ?? "")" data-ro="@(o.RO ?? "")" data-po="@(o.PO ?? "")" data-csr="@(o.CSR ?? "")" data-rec-link="@(o.LinkForIncomingPO ?? "")" data-mo-link="@(o.LinkForMO ?? "")" data-ro-link="@(o.LinkForRO ?? "")" style="cursor:pointer;" onclick="location.href='@Url.Page("./Edit", new { id = o.Id })'">
+            <td style="background-color:@bg; color:@fg" title="@o.SO">
+                @if (!string.IsNullOrEmpty(o.LinkForOrder))
+                {
+                    <a href="@o.LinkForOrder" target="_blank" rel="noopener noreferrer" onclick="(typeof event !== 'undefined' && event.stopPropagation) ? event.stopPropagation() : null; window.open(this.href,'_blank'); return false;">@Truncate(o.SO,20)</a>
+                }
+                else
+                {
+                    @Truncate(o.SO,20)
+                }
+            </td>
+            <td style="background-color:@bg; color:@fg" title="@o.Del">@Truncate(o.Del,20)</td>
+            <td class="col-third" style="background-color:@bg; color:@fg" title="@o.PO">@Truncate(o.PO,20)</td>
+            <td style="background-color:@bg; color:@fg" title="@o.Customer">@Truncate(o.Customer,20)</td>
+            <td style="background-color:@bg; color:@fg" title="@o.Worker">@Truncate(o.Worker,20)</td>
+            <td style="background-color:@bg; color:@fg" title="@o.CSR">@Truncate(o.CSR,20)</td>
+            <td style="background-color:@bg; color:@fg" title="@o.Courier">@Truncate(o.Courier,20)</td>
+            <td style="background-color:@bg; color:@fg" title="@o.Comment">@Truncate(o.Comment,20)</td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+@functions{
+    private string GetStatusColor(Hotboard.Models.OrderStatus s) => s switch
+    {
+        Hotboard.Models.OrderStatus.NotReady => "#3d075c",
+        Hotboard.Models.OrderStatus.Waiting => "#4a120d",
+        Hotboard.Models.OrderStatus.Ready => "#e62210",
+        Hotboard.Models.OrderStatus.Printed => "#b36710",
+        Hotboard.Models.OrderStatus.Posted => "#3d4a8f",
+        Hotboard.Models.OrderStatus.CalledIn => "#21871e",
+        Hotboard.Models.OrderStatus.Complete => "#ffffff",
+        _ => "transparent"
+    };
+
+    private string Truncate(string? s, int len = 20)
+    {
+        if (string.IsNullOrEmpty(s)) return string.Empty;
+        if (s.Length <= len) return s;
+        return s.Substring(0, len) + "...";
+    }
+}
+
+<script>
+    // Client-side filtering without page reload
+    (function(){
+        let timer = null;
+        window.onSearchInput = function() {
+            clearTimeout(timer);
+            timer = setTimeout(filterRows, 250);
+        }
+
+        window.filterRows = function() {
+            const q = document.getElementById('searchBox').value.trim().toLowerCase();
+            const filter = document.getElementById('filterSelect').value;
+            // current user (for My Orders filter) - assign as a JS string on window for console access
+            window.currentUser = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(User.Identity?.Name ?? ""));
+            const rows = document.querySelectorAll('table.table tbody tr');
+
+            // Determine which column to display in the 3rd position
+            let displayKey = 'po';
+            let headerLabel = 'PO#';
+            if (filter === 'Receiving') { displayKey = 'rec'; headerLabel = 'Rec#'; }
+            else if (filter === 'Manufacturing') { displayKey = 'mo'; headerLabel = 'MO#'; }
+            else if (filter === 'Sealshop') { displayKey = 'ro'; headerLabel = 'RO#'; }
+            else { displayKey = 'po'; headerLabel = 'PO#'; }
+
+            // Update header label
+            const header = document.getElementById('colThirdHeader');
+            if (header) header.textContent = headerLabel;
+
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+
+                // Update third cell content based on selected filter
+                const value = (row.dataset[displayKey] !== undefined) ? row.dataset[displayKey] : (row.dataset.po || '');
+                if (cells[2]) {
+                    const linkKey = displayKey + 'Link';
+                    const link = row.dataset[linkKey] || '';
+                    const displayText = value.length > 20 ? value.substring(0,20) + '...' : value;
+                    if (link) {
+                        // escape values for safe insertion
+                        const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+                        // if clicked, open link in new tab and navigate current window to edit page for this row
+                        const editUrl = row.dataset.editUrl || '';
+                        if (editUrl) {
+                            // stop row click and only open external link
+                            cells[2].innerHTML = '<a href="' + esc(link) + '" onclick="(typeof event !== \'undefined\' && event.stopPropagation) ? event.stopPropagation() : null; window.open(this.href,\'_blank\'); return false;" rel="noopener noreferrer">' + esc(displayText) + '</a>';
+                        } else {
+                            cells[2].innerHTML = '<a href="' + esc(link) + '" onclick="(typeof event !== \'undefined\' && event.stopPropagation) ? event.stopPropagation() : null; window.open(this.href,\'_blank\'); return false;" rel="noopener noreferrer">' + esc(displayText) + '</a>';
+                        }
+                        cells[2].title = value;
+                    }
+                    else {
+                        cells[2].innerText = displayText;
+                        cells[2].title = value;
+                    }
+                }
+
+                const text = Array.from(cells).map(td => td.textContent.toLowerCase()).join(' ');
+                const matchesSearch = q === '' || text.indexOf(q) !== -1;
+
+                // Custom filter rules per request
+                let matchesFilter = true;
+                const status = (row.dataset.status || '').toLowerCase();
+                const rec = (row.dataset.rec || '').trim();
+                const mo = (row.dataset.mo || '').trim();
+                const ro = (row.dataset.ro || '').trim();
+
+                if (filter && filter !== '') {
+                    if (filter === 'Shipping') {
+                        // Shipping shows Ready, Printed, Posted
+                        matchesFilter = ['ready','printed','posted'].includes(status);
+                    } else if (filter === 'My Orders') {
+                        // My Orders shows rows created by current user (CSR equals username)
+                        const csrRaw = (row.dataset.csr || '').trim();
+                        // window.current is assigned on page load
+                        let cuRaw = (window.currentUser || '').toString().trim();
+                        // normalize by removing non-word characters and lower-casing to avoid punctuation differences (e.g. trailing '!')
+                        const normalize = s => (s || '').replace(/[^\w]/g, '').toLowerCase();
+                        const csrNorm = normalize(csrRaw);
+                        const cuNorm = normalize(cuRaw);
+                        matchesFilter = csrNorm !== '' && csrNorm === cuNorm;
+                    } else if (filter === 'Receiving') {
+                        // Receiving shows Waiting with Rec# present
+                        matchesFilter = status === 'waiting' && rec !== '';
+                    } else if (filter === 'Manufacturing') {
+                        // Manufacturing shows Waiting with MO# present
+                        matchesFilter = status === 'waiting' && mo !== '';
+                    } else if (filter === 'Sealshop') {
+                        // Sealshop shows Waiting with RO# present
+                        matchesFilter = status === 'waiting' && ro !== '';
+                    } else if (filter === 'Traffic') {
+                        // Traffic shows Posted, CalledIn, Complete
+                        matchesFilter = ['posted','calledin','complete'].includes(status);
+                    } else {
+                        matchesFilter = true;
+                    }
+                }
+
+                row.style.display = (matchesSearch && matchesFilter) ? '' : 'none';
+            });
+        }
+
+        // initialize: ensure filter reflects initial values and attach event handlers
+        document.addEventListener('DOMContentLoaded', function(){
+            const sb = document.getElementById('searchBox');
+            if (sb) sb.value = sb.value || '';
+            const sel = document.getElementById('filterSelect');
+            if (sel) {
+                // attach change handler after function is defined
+                sel.addEventListener('change', filterRows);
+                // set default filter from server-side model (raw JSON to avoid HTML-encoding)
+                const defaultFilter = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.DefaultFilter ?? ""));
+                if (defaultFilter && defaultFilter !== '""') sel.value = JSON.parse(defaultFilter);
+            }
+            filterRows();
+        });
+    })();
+</script>

@@ -1,0 +1,42 @@
+@page "{id?}"
+@model Hotboard.Pages.Admin.Users.EditModel
+@{
+    ViewData["Title"] = Model.IsNew ? "Add User" : "Edit User";
+}
+
+<h1>@ViewData["Title"]</h1>
+
+<form method="post">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <input type="hidden" asp-for="Id" />
+    <div class="mb-3">
+        <label asp-for="UserName" class="form-label">Name</label>
+        <input asp-for="UserName" class="form-control" id="UserName" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Password (leave blank to keep)</label>
+        <input asp-for="Password" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label asp-for="Role" class="form-label">Role</label>
+        <select asp-for="Role" class="form-select">
+            <option>admin</option>
+            <option>CSR</option>
+            <option>shipping</option>
+            <option>receiving</option>
+            <option>manufacturing</option>
+            <option>sealshop</option>
+            <option>traffic</option>
+        </select>
+    </div>
+
+    <div class="d-flex gap-2">
+        <button type="submit" formaction="?handler=Save" class="btn btn-primary">Save</button>
+        @if (!Model.IsNew)
+        {
+            <button type="submit" formaction="?handler=Delete" class="btn btn-danger" onclick="return confirm('Вы действительно хотите удалить пользователя ' + document.getElementById('UserName').value + '?');">Delete</button>
+        }
+        <a asp-page="./Index" class="btn btn-link">Back</a>
+    </div>
+</form>
